@@ -1,5 +1,7 @@
 # data
 data/
+dataset/
+rawdata/
 # saved_models
 saved_models/
 
