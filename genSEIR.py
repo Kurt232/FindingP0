@@ -30,6 +30,8 @@ def save_ER_new_to_file(degrees, days: int, node_path):  # 节点状态
     for i in range(degrees.size):  # 打开文档，若无将自动创建
         if degrees[i] == 3:
             t = '1'  # 先取第一行，再取各列
+        elif degrees[i] == 4:
+            t = '2'
         else:
             t = '0'
         file.write(str(t) + ', ' + str(days) + '\n')
@@ -146,8 +148,8 @@ def epedemic_Simulation(N, p, S_to_E, E_to_I, to_R, t, epochs, file_path):
 
     for i  in range(epochs):
         node_path = file_path + str(i) + '/'
-        if not os.path.exists(node_path):
-            os.makedirs(node_path)
+        # if not os.path.exists(node_path): #以放错误启动 覆盖
+        os.makedirs(node_path)
         for a in range(Rp):  # 重复实验次数Rp次，利用for套内循环
             degrees = np.array([1 for i in range(N)])
             # 生成N个节点数，默认为1，即"易感者"
@@ -205,7 +207,7 @@ if __name__ == "__main__":
     path = r'./rawdata/'
 
     path = path + sys.argv[1] + '/'
-    if not os.path.exists(path):
-        os.makedirs(path)
+    # if not os.path.exists(path): 以防错误启动py 覆盖数据
+    os.makedirs(path)
     epedemic_Simulation(1000, 0.006, 0.2, 0.5, 0.2, 50, 1000, path)
 # 人数为1000，邻边结边率为0.006，感染率0.2，发病率0.5，康复率0.2，100天实验期

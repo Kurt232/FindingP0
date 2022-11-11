@@ -32,9 +32,11 @@ def save_ego_facebook_to_file(file_path, facebook_combine):  # 将ER邻边连接
 def save_state_new_to_file(degrees, days: int, node_path):  # 节点状态
     file = open(node_path + 'nodes' + str(days) + '.csv', 'w+')
     file.write('state, days\n')
-    for i in range(degrees.size):  # 打开文档，若无将自动创建
+    for i in range(degrees.size): 
         if degrees[i] == 3:
-            t = '1'  # 先取第一行，再取各列
+            t = '1' 
+        elif degrees[i] == 4:
+            t = '2'
         else:
             t = '0'
         file.write(str(t) + ', ' + str(days) + '\n')
@@ -150,8 +152,8 @@ def epedemic_Simulation(N, S_to_E, E_to_I, to_R, t, epochs, file_path, edges_pat
     R = np.array([1 for i in range(t)])
     for i in range(epochs):
         node_path = file_path + str(i) +'/'
-        if not os.path.exists(node_path):
-            os.makedirs(node_path)
+        # if not os.path.exists(node_path):
+        os.makedirs(node_path)
         for a in range(Rp):  # 重复实验次数Rp次，利用for套内循环
             degrees = np.array([1 for i in range(N)])
             # 生成N个节点数，默认为1，即"易感者"
@@ -209,7 +211,7 @@ if __name__ == "__main__":
 
     path = r'./rawdata/'
     path = path + sys.argv[1] + '/'
-    if not os.path.exists(path):
-        os.makedirs(path)
+    # if not os.path.exists(path):
+    os.makedirs(path)
     epedemic_Simulation(4039, 0.2, 0.5, 0.2, 50, 1000, file_path = path, edges_path='/home/du/gnn/ego-facebook/facebook_combined.txt')
 # 人数为4039，邻边结边率为0.006，感染率0.2，发病率0.5，康复率0.2，50 天实验期
