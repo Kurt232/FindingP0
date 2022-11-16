@@ -119,7 +119,7 @@ def spread(BAmap, S_to_E, E_to_I, to_R, degree):
     return post_degree  # 导出传播后节点状态
 
 
-def epedemic_Simulation(N, M, S_to_E, E_to_I, to_R, t, epochs, file_path, low):
+def epedemic_Simulation(N, M, S_to_E, E_to_I, to_R, t, epochs, file_path, low, sources):
     BAmap = create_BA(N, M, file_path)  # 生成BA网格
     save_BA_to_file(file_path, BAmap)  # 存储BA网格
     calculateDegreeDistribution(file_path, BAmap)
@@ -139,8 +139,9 @@ def epedemic_Simulation(N, M, S_to_E, E_to_I, to_R, t, epochs, file_path, low):
         for a in range(Rp):  # 重复实验次数Rp次，利用for套内循环
             degrees = np.array([1 for i in range(N)])
             # 生成N个节点数，默认为1，即"易感者"
-            iNum = np.random.randint(0, N)
-            degrees[iNum] = 3  # 随机抽取一位"发病者"
+            iNum = np.random.randint(0, N,size=(sources,))# sources 个发病者
+            for i in iNum:
+                degrees[i] = 3  #抽取多个发病者
             Ss = []
             Ee = []
             Ii = []
@@ -206,5 +207,5 @@ if __name__ == "__main__":
     elif os.path.exists(path):
         low = int(sys.argv[3])
 
-    epedemic_Simulation(1000, 6, 0.25, 0.5, 0.1, 50, epoch, path, low)
+    epedemic_Simulation(1000, 6, 0.25, 0.5, 0.1, 50, epoch, path, low, 2)
 # 人数为1000，没增加一个点添加6个边，感染率0.2，发病率0.5，康复率0.2，50天实验期, 一个图生成1次

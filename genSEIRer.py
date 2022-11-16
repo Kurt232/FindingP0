@@ -120,7 +120,7 @@ def spread(ERmap, S_to_E, E_to_I, to_R, degree):
     return post_degree  # 导出传播后节点状态
 
 
-def epedemic_Simulation(N, p, S_to_E, E_to_I, to_R, t, epochs, file_path):
+def epedemic_Simulation(N, p, S_to_E, E_to_I, to_R, t, epochs, file_path, low):
     ERmap = create_ER(N, p, file_path)  # 生成ER网格
     save_ER_to_file(file_path, ERmap)  # 存储ER网格
     calculateDegreeDistribution(file_path, ERmap)
@@ -133,14 +133,14 @@ def epedemic_Simulation(N, p, S_to_E, E_to_I, to_R, t, epochs, file_path):
     I = np.array([1 for i in range(t)])
     R = np.array([1 for i in range(t)])
 
-    for i  in range(epochs):
+    for i  in range(low, epochs + low):
         node_path = file_path + str(i) + '/'
         # if not os.path.exists(node_path): #以放错误启动 覆盖
         os.makedirs(node_path)
         for a in range(Rp):  # 重复实验次数Rp次，利用for套内循环
             degrees = np.array([1 for i in range(N)])
             # 生成N个节点数，默认为1，即"易感者"
-            iNum = random.randint(0, N - 1)
+            iNum = np.random.randint(0, N)
             degrees[iNum] = 3  # 随机抽取一位"发病者"
             Ss = []
             Ee = []
@@ -187,15 +187,25 @@ def epedemic_Simulation(N, p, S_to_E, E_to_I, to_R, t, epochs, file_path):
         plt.show()
 
 if __name__ == "__main__":
-
-    if len(sys.argv) > 2:
-        sys.stderr.write('only one arg of filename')
+    """
+    argv[1] pathname
+    argv[2] epoch 
+    argv[3] epoch low 0 从第0次开始 other 从第0次开始
+    """
+    lenargv = len(sys.argv)
+    if  lenargv > 4 or lenargv == 1:
+        sys.stderr.write('args error')
         sys.exit()
     # 入口参数 将会写在/rawdata/下
     path = r'./rawdata/'
-
     path = path + sys.argv[1] + '/'
     # if not os.path.exists(path): 以防错误启动py 覆盖数据
-    os.makedirs(path)
-    epedemic_Simulation(1000, 0.012, 0.25, 0.6, 0.1, 50, 1, path)
+    low = 0
+    epoch = int(sys.argv[2])
+    if lenargv == 3:
+        os.makedirs(path)
+    elif os.path.exists(path):
+        low = int(sys.argv[3])
+
+    epedemic_Simulation(1000, 0.012, 0.25, 0.5, 0.1, 50, epoch, path, low)
 # 人数为1000，邻边结边率为0.006，感染率0.25，发病率0.5，康复率0.1，100天实验期
