@@ -1,12 +1,13 @@
-import numpy as np  # 调用numpy多维数组包——用来建立BA网格
-import matplotlib.pyplot as plt  # 调用matplotlib画图包——生成SEIR模型图
-import networkx as nx  # 调用networkx图形包——绘制BA随机分布图
+import numpy as np  
+import matplotlib.pyplot as plt 
+import networkx as nx  
 import sys, os
 import pandas as pd
+import argparse
 
 # 使用taichi加速
 import taichi as ti
-ti.init(arch=ti.gpu)
+ti.init(arch=ti.cpu)
 
 def create_er_graph(argv: list):
     g = nx.random_graphs.erdos_renyi_graph(argv[0], argv[1], argv[2])
@@ -30,6 +31,8 @@ def create_graph(types_g: str, nodes: int):
 def map2vec(g: ti.types.ndarray(), e: ti.types.ndarray()):
     n = g.shape[0]
     k = 0
+    # 若不序列化 会在边后面生成大量的0
+    ti.loop_config(serialize=True) # 似乎需要序列化
     for i, j in ti.ndrange(n, n): 
         if g[i, j] == 1:
             e[k, 0] = i
@@ -68,27 +71,35 @@ if __name__ == "__main__":
     argv[4] days: int 
     argv[5] nodes: int 
     argv[6] single_g : [0, 1] 0:False 1: True
+    argv[7] start_day: int default : 0
     """
-    lenargv = len(sys.argv)
-    if  lenargv < 5:
-        sys.stderr.write('args error')
-        sys.exit()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("graph", type=str, choices=['er', 'ba'], help='graph name')
+    parser.add_argument("path", type=str,help='input subpath')
+    parser.add_argument("epoch", type=int)
+    parser.add_argument("days", type=int)
+    parser.add_argument("--nodes", type=int, default=1000)
+    parser.add_argument("--single", type=int, choices=[False, True], default=False)
+    parser.add_argument("--start", type=int, default=0)
+    args = parser.parse_args()
     
     # 入口参数 将会写在/rawdata/下
-    type_g = sys.argv[1]
     path = r'./rawdata/'
-    path = path + sys.argv[2] + '/'
-    # if not os.path.exists(path): 以防错误启动py 覆盖数据
-    os.makedirs(path)
-    epoch = int(sys.argv[3])
-    days = int(sys.argv[4])
-    n_node = 1000
-    single_g = False
+    path = path + args.path + '/'
+    if args.single:
+        args.start = 0
+        print("单图生成 不能分段生成")
     
-    if lenargv >= 6:
-        n_node = int(sys.argv[5])
-    if lenargv >= 7:
-        single_g = '1' == sys.argv[6]
+    # if not os.path.exists(path): 以防错误启动py 覆盖数据
+    if os.path.exists(path):
+        if args.start > 0:
+            print(f"从{args.start}开始生成")
+        else:
+            print("存在路径冲突")
+        if os.path.exists(path+ str(args.start) + '/'):
+            print("存在覆盖冲突")
+    else:
+        os.makedirs(path)
     
     #SEIR 参数 感染率0.2，发病率0.5，康复率0.1
     s2e = ti.field(ti.f32, shape=())
@@ -101,6 +112,7 @@ if __name__ == "__main__":
     @ti.kernel
     def spread(g: ti.types.ndarray(), degree: ti.types.ndarray()):
         nodes, days = degree.shape
+        ti.loop_config(serialize=True) #TODO
         for t in ti.ndrange(days-1):
             for i in ti.ndrange(nodes):
                 if degree[i, t] == 1:  # 若节点状态为1，即"易感者"
@@ -125,16 +137,20 @@ if __name__ == "__main__":
                         degree[i, t + 1] = 4
                     else:
                         degree[i, t + 1] = 3
+                elif degree[i, t] == 4:
+                    degree[i, t + 1] = 4
             ti.lang.runtime_ops.sync()
         
 
-    def epedemic_Simulation(types_g, nodes, t, epochs, file_path, single_g):
+    def epedemic_Simulation(types_g, nodes, t, epochs, file_path, single_g, start_d):
         if single_g:
             g, g_size = create_graph(types_g, nodes) 
             save_graph_csv(g, g_size, file_path)
 
         for i in range(epochs):
-            node_path = file_path + str(i) + '/'
+            if i%100 == 0:
+                print(f"epoch: {i}")
+            node_path = file_path + str(i + start_d) + '/'
             os.makedirs(node_path)
             if not single_g:
                 g, g_size = create_graph(types_g, nodes) 
@@ -148,5 +164,5 @@ if __name__ == "__main__":
             tran_node_state(degrees)
             save_node_csv(degrees, node_path)
 
-    epedemic_Simulation(type_g, n_node, days, epoch, path, single_g)
+    epedemic_Simulation(args.graph, args.nodes, args.days, args.epoch, path, args.single, args.start)
 # 人数为1000，没增加一个点添加6个边，50天实验期, 一个图生成1次
