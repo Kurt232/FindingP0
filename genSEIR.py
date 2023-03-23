@@ -1,7 +1,6 @@
 import numpy as np  
-import matplotlib.pyplot as plt 
 import networkx as nx  
-import sys, os
+import os
 import pandas as pd
 import argparse
 
